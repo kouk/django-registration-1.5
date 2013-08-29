@@ -1,55 +1,81 @@
 """
 Forms and validation code for user registration.
 
-Note that all of these forms assume Django's bundle default ``User``
-model; since it's not possible for a form to anticipate in advance the
-needs of custom user models, you will need to write your own forms if
-you're using a custom model.
-
 """
 
 
-from django.contrib.auth.models import User
+from django.conf import settings
+try:
+    from django.contrib.auth import get_user_model
+except ImportError: # django < 1.5
+    from django.contrib.auth.models import User
+else:
+    User = get_user_model()
+
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
+from registration.backends import get_module
 
-class RegistrationForm(forms.Form):
+# I put this on all required fields, because it's easier to pick up
+# on them with CSS or JavaScript if they have a class of "required"
+# in the HTML. Your mileage may vary. If/when Django ticket #3515
+# lands in trunk, this will no longer be necessary.
+attrs_dict = {'class': 'required'}
+
+
+registration_form_mixin = None
+if getattr(settings, 'REGISTRATION_FORMS_MIXIN', None):
+    registration_form_mixin = get_module(settings.REGISTRATION_FORMS_MIXIN)
+
+RegistrationFormsMixin = type('RegistrationFormsMixin', (registration_form_mixin or object,), {})
+
+
+class RegistrationFormFromUserModel(object):
+    """
+    Create form from djangor user model
+    """
+    def __init__(self, *args, **kwargs):
+        super(RegistrationFormFromUserModel, self).__init__(*args, **kwargs)
+        # add new fields befor exsist sields
+        insert_index = 0
+        for field in set([User.USERNAME_FIELD,] + list(User.REQUIRED_FIELDS)):
+            self.fields.insert(insert_index, field, User._meta.get_field(field).formfield())
+            insert_index += 1
+
+
+class RegistrationForm(RegistrationFormsMixin, RegistrationFormFromUserModel, forms.Form):
     """
     Form for registering a new user account.
-    
-    Validates that the requested username is not already in use, and
-    requires the password to be entered twice to catch typos.
     
     Subclasses should feel free to add any additional validation they
     need, but should avoid defining a ``save()`` method -- the actual
     saving of collected user data is delegated to the active
     registration backend.
-
     """
-    required_css_class = 'required'
-    
-    username = forms.RegexField(regex=r'^[\w.@+-]+$',
-                                max_length=30,
-                                label=_("Username"),
-                                error_messages={'invalid': _("This value may contain only letters, numbers and @/./+/-/_ characters.")})
-    email = forms.EmailField(label=_("E-mail"))
-    password1 = forms.CharField(widget=forms.PasswordInput,
-                                label=_("Password"))
-    password2 = forms.CharField(widget=forms.PasswordInput,
-                                label=_("Password (again)"))
-    
-    def clean_username(self):
-        """
-        Validate that the username is alphanumeric and is not already
-        in use.
-        
-        """
-        existing = User.objects.filter(username__iexact=self.cleaned_data['username'])
-        if existing.exists():
-            raise forms.ValidationError(_("A user with that username already exists."))
-        else:
-            return self.cleaned_data['username']
+
+    password1 = forms.CharField(widget=forms.PasswordInput(attrs=attrs_dict, render_value=False),
+        label=_("Password"))
+    password2 = forms.CharField(widget=forms.PasswordInput(attrs=attrs_dict, render_value=False),
+        label=_("Password (again)"))
+
+    #    def clean_username(self):
+    #        """
+    #        Validate that the username is alphanumeric and is not already
+    #        in use.
+    #
+    #        """
+    #        existing = User.objects.filter(username__iexact=self.cleaned_data['username'])
+    #        if existing.exists():
+    #            raise forms.ValidationError(_("A user with that username already exists."))
+    #        else:
+    #            return self.cleaned_data['username']
+
+    def clean_email(self):
+        if User.objects.filter(email__iexact=self.cleaned_data['email']):
+            raise forms.ValidationError(_("This email address is already in use. Please supply a different email address."))
+        return self.cleaned_data['email']
+
 
     def clean(self):
         """
@@ -71,9 +97,9 @@ class RegistrationFormTermsOfService(RegistrationForm):
     for agreeing to a site's Terms of Service.
     
     """
-    tos = forms.BooleanField(widget=forms.CheckboxInput,
-                             label=_(u'I have read and agree to the Terms of Service'),
-                             error_messages={'required': _("You must agree to the terms to register")})
+    tos = forms.BooleanField(widget=forms.CheckboxInput(attrs=attrs_dict),
+        label=_(u'I have read and agree to the Terms of Service'),
+        error_messages={'required': _("You must agree to the terms to register")})
 
 
 class RegistrationFormUniqueEmail(RegistrationForm):
@@ -107,7 +133,7 @@ class RegistrationFormNoFreeEmail(RegistrationForm):
                    'googlemail.com', 'hotmail.com', 'hushmail.com',
                    'msn.com', 'mail.ru', 'mailinator.com', 'live.com',
                    'yahoo.com']
-    
+
     def clean_email(self):
         """
         Check the supplied email address against a list of known free
