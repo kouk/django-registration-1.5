@@ -63,7 +63,7 @@ class SimpleBackend(object):
         After registration, redirect to the user's account page.
 
         """
-        return (user.get_absolute_url(), (), {})
+        return ('/', (), {})
 
     def post_activation_redirect(self, request, user):
         raise NotImplementedError
