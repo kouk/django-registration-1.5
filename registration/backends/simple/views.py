@@ -13,13 +13,13 @@ class RegistrationView(BaseRegistrationView):
     workflow: a user supplies a username, email address and password
     (the bare minimum for a useful account), and is immediately signed
     up and logged in).
-    
+
     """
     def register(self, request, **cleaned_data):
-        username, email, password = cleaned_data['username'], cleaned_data['email'], cleaned_data['password1']
-        User.objects.create_user(username, email, password)
+        email, password = cleaned_data['email'], cleaned_data['password1']
+        User.objects.create_user(email, password)
 
-        new_user = authenticate(username=username, password=password)
+        new_user = authenticate(username=email, password=password)
         login(request, new_user)
         signals.user_registered.send(sender=self.__class__,
                                      user=new_user,
@@ -37,9 +37,9 @@ class RegistrationView(BaseRegistrationView):
 
         * If ``REGISTRATION_OPEN`` is both specified and set to
           ``False``, registration is not permitted.
-        
+
         """
         return getattr(settings, 'REGISTRATION_OPEN', True)
 
     def get_success_url(self, request, user):
-        return (user.get_absolute_url(), (), {})
+        return ('/', (), {})
