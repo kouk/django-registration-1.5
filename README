@@ -1,4 +1,6 @@
-.. -*-restructuredtext-*-
+========================
+Django user registration
+========================
 
 This is a fairly simple user-registration application for Django,
 designed to make allowing user signups as painless as possible. It
@@ -12,8 +14,7 @@ directory. Full documentation is also `available online
 https://django-registration.readthedocs.org/`_
 
 
-Branches
---------
+Fork
+----
 
-The master branch is an unofficial mirror of upstream.
-The `for-1.5` branch is an unofficial mirror of LinnTroll's mirror with modifications for Django-1.5
+This is just a fork that mirrors mostly LinnTroll's modifications for Django-1.5

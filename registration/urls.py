@@ -10,6 +10,6 @@ django-registration 1.0. For new installs, use
 import warnings
 
 warnings.warn("include('registration.urls') is deprecated; use include('registration.backends.default.urls') instead.",
-              DeprecationWarning)
+              PendingDeprecationWarning)
 
 from registration.backends.default.urls import *
