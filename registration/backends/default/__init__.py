@@ -104,6 +104,9 @@ class DefaultBackend(object):
             signals.user_activated.send(sender=self.__class__,
                 user=activated,
                 request=request)
+            activated.backend = 'django.contrib.auth.backends.ModelBackend'
+            from django.contrib.auth import login
+            login(request, activated)
         return activated
 
     def registration_allowed(self, request):

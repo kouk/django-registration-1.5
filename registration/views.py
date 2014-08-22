@@ -13,7 +13,7 @@ from registration.backends import get_backend
 
 def activate(request, backend,
              template_name='registration/activate.html',
-             success_url=None, extra_context=None, **kwargs):
+             success_url='/', extra_context=None, **kwargs):
     """
     Activate a user's account.
 
