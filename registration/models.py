@@ -2,6 +2,7 @@ import datetime
 import hashlib
 import random
 import re
+import os
 
 from django.conf import settings
 try:
@@ -12,8 +13,9 @@ else:
     User = get_user_model()
 from django.db import models
 from django.db import transaction
-from django.template.loader import render_to_string
+from django.template.loader import render_to_string, get_template, TemplateDoesNotExist
 from django.utils.translation import ugettext_lazy as _
+from django.core.mail import EmailMultiAlternatives
 
 try:
     from django.utils.timezone import now as datetime_now
@@ -262,8 +264,21 @@ class RegistrationProfile(models.Model):
         # Email subject *must not* contain newlines
         subject = ''.join(subject.splitlines())
 
-        message = render_to_string('registration/activation_email.txt',
-            ctx_dict)
+        template = 'registration/activation_email.txt'
+        template_html_guess = "%s.html" % os.path.splitext(template)[0]
 
-        self.user.email_user(subject, message, settings.DEFAULT_FROM_EMAIL)
+        body_txt = render_to_string('registration/activation_email.txt',
+            ctx_dict)
+        msg = EmailMultiAlternatives(subject, body_txt,
+                                     settings.NOTIFICATION_SENDER, (self.user.email,))
+
+        try:
+            get_template(template_html_guess)
+            template_html = template_html_guess
+            body_html = render_to_string(template_html, ctx_dict)
+            msg.attach_alternative(body_html, "text/html")
+        except TemplateDoesNotExist:
+            pass
+
+        msg.send(fail_silently=True)
 
