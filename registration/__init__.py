@@ -1,11 +1,11 @@
-VERSION = (0, 8, 0, 'final', 0)
+VERSION = (0, 8, 1, 'longaccess', 1)
 
 def get_version(version=None):
     """Derives a PEP386-compliant version number from VERSION."""
     if version is None:
         version = VERSION
     assert len(version) == 5
-    assert version[3] in ('alpha', 'beta', 'rc', 'final')
+    assert version[3] in ('alpha', 'beta', 'rc', 'final', 'longaccess')
 
     # Now build the two parts of the version number:
     # main = X.Y[.Z]
@@ -23,6 +23,8 @@ def get_version(version=None):
         if svn_revision != 'unknown':
             sub = '.dev%s' % svn_revision
 
+    elif version[3] == 'longaccess':
+        sub = '-longaccess.' + str(version[4])
     elif version[3] != 'final':
         mapping = {'alpha': 'a', 'beta': 'b', 'rc': 'c'}
         sub = mapping[version[3]] + str(version[4])
